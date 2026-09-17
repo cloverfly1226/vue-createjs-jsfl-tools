@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ES3",
+    "module": "None",
+    "outFile": "./dist/lib.js",
+    "noEmitHelpers": true,
+    "removeComments": true,
+    "skipLibCheck": true
+  },
+  "include": ["./jsfl-src/lib/**/*.ts"],
+  "exclude": ["node_modules"]
+}

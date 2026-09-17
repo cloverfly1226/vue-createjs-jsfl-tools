@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES3",
+    "module": "None",
+    "rootDir": "./jsfl-src",
+    "outDir": "./dist",
+    "noEmitHelpers": true,
+    "removeComments": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "./jsfl-src/PublishOne.ts",
+    "./jsfl-src/PublishAll.ts"
+  ]
+}
