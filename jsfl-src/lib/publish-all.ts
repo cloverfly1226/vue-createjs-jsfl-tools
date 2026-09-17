@@ -1,4 +1,8 @@
 /// <reference types="@types/jsfl"/>
+/// <reference path="./publish.ts" />
+/// <reference path="./declaration.ts" />
+/// <reference path="./assets.ts" />
+/// <reference path="./compositions.ts" />
 
 function publishAll() {
     if (fl.documents && fl.documents.length > 0) {
@@ -30,13 +34,21 @@ function publishAll() {
 
     const failed_fla_names: string[] = [];
 
+    clearAnimDts();
+
     for (let i = 0; i < fla_names.length; i++) {
         const fla_name = fla_names[i];
         const fla_url = `${anims_folder}/${fla_name}`;
         const dom = fl.openDocument(fla_url);
 
+        const config = createPublishConfig(dom);
+
         try {
-            publish(dom);
+            publish(config);
+
+            declaration(config);
+
+            parseImages(config);
         } catch (error) {
             failed_fla_names.push(fla_name);
             fl.trace(`发布失败：${fla_name}\n${error}`);
@@ -44,6 +56,10 @@ function publishAll() {
             dom.close(false);
         }
     }
+
+    parseAllImages();
+
+    parseCompositionsMap();
 
     if (failed_fla_names.length > 0) {
         alert(`以下 fla 文件发布失败：\n${failed_fla_names.join("\n")}`);

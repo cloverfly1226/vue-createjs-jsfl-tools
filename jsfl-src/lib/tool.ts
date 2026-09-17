@@ -1,6 +1,9 @@
 /// <reference types="@types/jsfl"/>
 
 type PublishConfig = {
+  /** 文档对象 */
+  dom: FlashDocument;
+
   /** 文件名(去除扩展名) */
   dom_name: string;
 
@@ -34,6 +37,7 @@ function createPublishConfig(dom: FlashDocument): PublishConfig {
   const publish_image_url: string = `${publish_image_folder}/${dom_name}`;
 
   return {
+    dom,
     dom_name,
     proj_folder,
     publish_js_folder,
