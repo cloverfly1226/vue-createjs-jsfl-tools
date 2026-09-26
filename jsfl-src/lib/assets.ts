@@ -112,6 +112,61 @@ function parseAllImages() {
     FLfile.write(`${images_folder}/index.ts`, lines.join("\n"));
 }
 
+/**
+ * 扫描 `src/assets/anims/` 下发布出的 JS，生成 Vite `?url` 模块表。
+ * 输出到 `{项目}/src/assets/anims/index.ts`。
+ */
+function parseAllAnim() {
+    const script_root = fl.scriptURI.substring(0, fl.scriptURI.lastIndexOf("/"));
+    const proj_folder = script_root.substring(0, script_root.lastIndexOf("/"));
+    const anims_js_folder = `${proj_folder}/src/assets/anims`;
+
+    if (!FLfile.exists(anims_js_folder)) {
+        return;
+    }
+
+    const file_names = FLfile.listFolder(`${anims_js_folder}/*.js`, "files" as any);
+    if (!file_names || file_names.length === 0) {
+        return;
+    }
+
+    file_names.sort();
+
+    const import_lines: string[] = [];
+    const export_names: string[] = [];
+    const used_names: { [name: string]: boolean } = {};
+
+    for (let i = 0; i < file_names.length; i++) {
+        const file_name = file_names[i];
+        const export_name = toImageExportName(file_name);
+        if (!export_name || used_names[export_name] || !isImageExportIdentifier(export_name)) {
+            continue;
+        }
+
+        used_names[export_name] = true;
+        export_names.push(export_name);
+        import_lines.push(`import ${export_name} from "./${file_name}?url";`);
+    }
+
+    if (export_names.length === 0) {
+        return;
+    }
+
+    const lines: string[] = [];
+    for (let i = 0; i < import_lines.length; i++) {
+        lines.push(import_lines[i]);
+    }
+    lines.push("");
+    lines.push("export default {");
+    for (let i = 0; i < export_names.length; i++) {
+        lines.push(`  ${export_names[i]},`);
+    }
+    lines.push("};");
+    lines.push("");
+
+    FLfile.write(`${anims_js_folder}/index.ts`, lines.join("\n"));
+}
+
 /** 按扩展名判断是否为图片（忽略大小写） */
 function isImageFile(file_name: string): boolean {
     const dot = file_name.lastIndexOf(".");

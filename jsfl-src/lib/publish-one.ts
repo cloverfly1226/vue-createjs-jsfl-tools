@@ -24,4 +24,6 @@ function publishOne() {
     parseAllImages();
 
     parseCompositionsMap();
+
+    parseAllAnim();
 }

@@ -96,6 +96,47 @@ function parseAllImages() {
     lines.push("");
     FLfile.write("".concat(images_folder, "/index.ts"), lines.join("\n"));
 }
+function parseAllAnim() {
+    var script_root = fl.scriptURI.substring(0, fl.scriptURI.lastIndexOf("/"));
+    var proj_folder = script_root.substring(0, script_root.lastIndexOf("/"));
+    var anims_js_folder = "".concat(proj_folder, "/src/assets/anims");
+    if (!FLfile.exists(anims_js_folder)) {
+        return;
+    }
+    var file_names = FLfile.listFolder("".concat(anims_js_folder, "/*.js"), "files");
+    if (!file_names || file_names.length === 0) {
+        return;
+    }
+    file_names.sort();
+    var import_lines = [];
+    var export_names = [];
+    var used_names = {};
+    for (var i = 0; i < file_names.length; i++) {
+        var file_name = file_names[i];
+        var export_name = toImageExportName(file_name);
+        if (!export_name || used_names[export_name] || !isImageExportIdentifier(export_name)) {
+            continue;
+        }
+        used_names[export_name] = true;
+        export_names.push(export_name);
+        import_lines.push("import ".concat(export_name, " from \"./").concat(file_name, "?url\";"));
+    }
+    if (export_names.length === 0) {
+        return;
+    }
+    var lines = [];
+    for (var i = 0; i < import_lines.length; i++) {
+        lines.push(import_lines[i]);
+    }
+    lines.push("");
+    lines.push("export default {");
+    for (var i = 0; i < export_names.length; i++) {
+        lines.push("  ".concat(export_names[i], ","));
+    }
+    lines.push("};");
+    lines.push("");
+    FLfile.write("".concat(anims_js_folder, "/index.ts"), lines.join("\n"));
+}
 function isImageFile(file_name) {
     var dot = file_name.lastIndexOf(".");
     if (dot < 0) {
@@ -437,6 +478,7 @@ function publishAll() {
     }
     parseAllImages();
     parseCompositionsMap();
+    parseAllAnim();
     if (failed_fla_names.length > 0) {
         alert("\u4EE5\u4E0B fla \u6587\u4EF6\u53D1\u5E03\u5931\u8D25\uFF1A\n".concat(failed_fla_names.join("\n")));
     }
@@ -454,4 +496,5 @@ function publishOne() {
     parseImages(config);
     parseAllImages();
     parseCompositionsMap();
+    parseAllAnim();
 }

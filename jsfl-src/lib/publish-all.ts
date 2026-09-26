@@ -61,6 +61,8 @@ function publishAll() {
 
     parseCompositionsMap();
 
+    parseAllAnim();
+
     if (failed_fla_names.length > 0) {
         alert(`以下 fla 文件发布失败：\n${failed_fla_names.join("\n")}`);
     }
