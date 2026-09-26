@@ -66,7 +66,7 @@ function ensureDtsFolder(folder_url: string) {
 /**
  * 拼出完整 d.ts：
  * 1. `_default`：主时间轴具名实例（递归子元件）
- * 2. linkage 类：库里勾了导出的元件（只收一层）
+ * 2. linkage 类：库里勾了导出的元件（具名实例递归展开）
  * 3. `Lib`：对应发布 JS 里的 `lib` 构造函数表
  */
 function buildDtsContent(dom: FlashDocument, dom_name: string): string {
@@ -114,7 +114,7 @@ function collectDocumentSceneProps(dom: FlashDocument): DtsProp[] {
     const timelines = dom.timelines;
 
     for (let t = 0; t < timelines.length; t++) {
-        const collected = collectTimelineProps(timelines[t], true, {});
+        const collected = collectTimelineProps(timelines[t], {});
         for (let i = 0; i < collected.length; i++) {
             const prop = collected[i];
             if (seen[prop.name]) {
@@ -130,7 +130,7 @@ function collectDocumentSceneProps(dom: FlashDocument): DtsProp[] {
 
 /**
  * 收集库中「为 ActionScript 导出」的影片剪辑 / 按钮 / 图形。
- * 类名取 `linkageClassName`；内部只扫当前时间轴一层，不递归子元件。
+ * 类名取 `linkageClassName`；内部具名实例与主舞台一样递归展开。
  */
 function collectExportedClasses(dom: FlashDocument): DtsClass[] {
     const classes: DtsClass[] = [];
@@ -153,7 +153,7 @@ function collectExportedClasses(dom: FlashDocument): DtsClass[] {
 
         classes.push({
             name: class_name,
-            props: item.timeline ? collectTimelineProps(item.timeline, false, {}) : [],
+            props: item.timeline ? collectTimelineProps(item.timeline, {}) : [],
         });
     }
 
@@ -161,11 +161,10 @@ function collectExportedClasses(dom: FlashDocument): DtsClass[] {
 }
 
 /**
- * 遍历一条时间轴上的具名对象。
- * @param recursive 为 true 时进入子元件时间轴（主舞台 `_default`）；linkage 类传 false。
+ * 遍历一条时间轴上的具名对象，并进入子元件继续收集。
  * @param ancestors 已在递归链上的库元件名，用来打断循环引用。
  */
-function collectTimelineProps(timeline: FlashTimeline, recursive: boolean, ancestors: { [itemName: string]: boolean }): DtsProp[] {
+function collectTimelineProps(timeline: FlashTimeline, ancestors: { [itemName: string]: boolean }): DtsProp[] {
     const props: DtsProp[] = [];
     const seen: { [propName: string]: boolean } = {};
     const layers = timeline.layers;
@@ -210,9 +209,9 @@ function collectTimelineProps(timeline: FlashTimeline, recursive: boolean, ances
                 seen[element.name] = true;
 
                 let children: DtsProp[] = [];
-                if (recursive && item.timeline && !ancestors[item.name]) {
+                if (item.timeline && !ancestors[item.name]) {
                     ancestors[item.name] = true;
-                    children = collectTimelineProps(item.timeline, true, ancestors);
+                    children = collectTimelineProps(item.timeline, ancestors);
                     delete ancestors[item.name];
                 }
 
