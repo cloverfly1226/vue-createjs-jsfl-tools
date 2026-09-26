@@ -31,7 +31,7 @@ function parseImages(config: PublishConfig) {
             continue;
         }
 
-        const export_name = toImageExportName(file_name);
+        const export_name = stripFileExtension(file_name);
         if (!export_name || used_names[export_name]) {
             continue;
         }
@@ -85,7 +85,7 @@ function parseAllImages() {
 
     for (let i = 0; i < folder_names.length; i++) {
         const folder_name = folder_names[i];
-        if (!isImageExportIdentifier(folder_name)) {
+        if (!folder_name) {
             continue;
         }
 
@@ -138,8 +138,8 @@ function parseAllAnim() {
 
     for (let i = 0; i < file_names.length; i++) {
         const file_name = file_names[i];
-        const export_name = toImageExportName(file_name);
-        if (!export_name || used_names[export_name] || !isImageExportIdentifier(export_name)) {
+        const export_name = stripFileExtension(file_name);
+        if (!export_name || used_names[export_name]) {
             continue;
         }
 
@@ -183,21 +183,8 @@ function isImageFile(file_name: string): boolean {
     return false;
 }
 
-/** 去掉扩展名并转成合法的 JS 导出标识符 */
-function toImageExportName(file_name: string): string {
+/** 去掉最后一个扩展名，其余文件名原样保留 */
+function stripFileExtension(file_name: string): string {
     const dot = file_name.lastIndexOf(".");
-    const base = dot < 0 ? file_name : file_name.substring(0, dot);
-    let name = base.replace(/[^A-Za-z0-9_$]/g, "_");
-    if (!name) {
-        return "";
-    }
-    if (!/^[A-Za-z_$]/.test(name)) {
-        name = "_" + name;
-    }
-    return name;
-}
-
-/** 文件夹名必须是合法标识符，才能直接 `import 名 from "./名"` */
-function isImageExportIdentifier(name: string): boolean {
-    return !!name && /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name);
+    return dot < 0 ? file_name : file_name.substring(0, dot);
 }

@@ -34,7 +34,7 @@ function parseImages(config) {
         if (!isImageFile(file_name)) {
             continue;
         }
-        var export_name = toImageExportName(file_name);
+        var export_name = stripFileExtension(file_name);
         if (!export_name || used_names[export_name]) {
             continue;
         }
@@ -74,7 +74,7 @@ function parseAllImages() {
     var export_names = [];
     for (var i = 0; i < folder_names.length; i++) {
         var folder_name = folder_names[i];
-        if (!isImageExportIdentifier(folder_name)) {
+        if (!folder_name) {
             continue;
         }
         import_lines.push("import ".concat(folder_name, " from \"./").concat(folder_name, "\";"));
@@ -113,8 +113,8 @@ function parseAllAnim() {
     var used_names = {};
     for (var i = 0; i < file_names.length; i++) {
         var file_name = file_names[i];
-        var export_name = toImageExportName(file_name);
-        if (!export_name || used_names[export_name] || !isImageExportIdentifier(export_name)) {
+        var export_name = stripFileExtension(file_name);
+        if (!export_name || used_names[export_name]) {
             continue;
         }
         used_names[export_name] = true;
@@ -150,20 +150,9 @@ function isImageFile(file_name) {
     }
     return false;
 }
-function toImageExportName(file_name) {
+function stripFileExtension(file_name) {
     var dot = file_name.lastIndexOf(".");
-    var base = dot < 0 ? file_name : file_name.substring(0, dot);
-    var name = base.replace(/[^A-Za-z0-9_$]/g, "_");
-    if (!name) {
-        return "";
-    }
-    if (!/^[A-Za-z_$]/.test(name)) {
-        name = "_" + name;
-    }
-    return name;
-}
-function isImageExportIdentifier(name) {
-    return !!name && /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name);
+    return dot < 0 ? file_name : file_name.substring(0, dot);
 }
 function declaration(config) {
     var dom = config.dom, dom_name = config.dom_name, proj_folder = config.proj_folder;
