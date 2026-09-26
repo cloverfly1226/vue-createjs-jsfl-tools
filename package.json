@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "jsfl:build:lib": "tsc -p tsconfig.lib.json",
-    "jsfl:build:main": "tsc -p tsconfig.main.json",
+    "jsfl:build:lib": "tsc -p tsconfig.lib.json && node rename.mjs",
+    "jsfl:build:main": "tsc -p tsconfig.main.json && node rename.mjs",
     "jsfl:build": "pnpm run jsfl:build:lib && pnpm run jsfl:build:main && node rename.mjs",
     "jsfl:watch:lib": "tsc-watch -p tsconfig.lib.json --onSuccess \"node rename.mjs\"",
     "jsfl:watch:main": "tsc-watch -p tsconfig.main.json --onSuccess \"node rename.mjs\""

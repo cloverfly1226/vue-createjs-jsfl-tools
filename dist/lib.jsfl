@@ -191,7 +191,7 @@ function collectDocumentSceneProps(dom) {
     var seen = {};
     var timelines = dom.timelines;
     for (var t = 0; t < timelines.length; t++) {
-        var collected = collectTimelineProps(timelines[t], true, {});
+        var collected = collectTimelineProps(timelines[t], {});
         for (var i = 0; i < collected.length; i++) {
             var prop = collected[i];
             if (seen[prop.name]) {
@@ -220,12 +220,12 @@ function collectExportedClasses(dom) {
         }
         classes.push({
             name: class_name,
-            props: item.timeline ? collectTimelineProps(item.timeline, false, {}) : []
+            props: item.timeline ? collectTimelineProps(item.timeline, {}) : []
         });
     }
     return classes;
 }
-function collectTimelineProps(timeline, recursive, ancestors) {
+function collectTimelineProps(timeline, ancestors) {
     var props = [];
     var seen = {};
     var layers = timeline.layers;
@@ -260,9 +260,9 @@ function collectTimelineProps(timeline, recursive, ancestors) {
                 }
                 seen[element.name] = true;
                 var children = [];
-                if (recursive && item.timeline && !ancestors[item.name]) {
+                if (item.timeline && !ancestors[item.name]) {
                     ancestors[item.name] = true;
-                    children = collectTimelineProps(item.timeline, true, ancestors);
+                    children = collectTimelineProps(item.timeline, ancestors);
                     delete ancestors[item.name];
                 }
                 props.push({ name: element.name, kind: "clip", children: children });
