@@ -26,8 +26,18 @@ function publishAll() {
         return;
     }
 
-    const fla_names = FLfile.listFolder(`${anims_folder}/*.fla`, "files" as any);
-    if (!fla_names || fla_names.length === 0) {
+    const listed_fla_names = FLfile.listFolder(`${anims_folder}/*.fla`, "files" as any);
+    const fla_names: string[] = [];
+    if (listed_fla_names) {
+        for (let i = 0; i < listed_fla_names.length; i++) {
+            if (listed_fla_names[i].toLowerCase() === "lib.fla") {
+                continue;
+            }
+            fla_names.push(listed_fla_names[i]);
+        }
+    }
+
+    if (fla_names.length === 0) {
         alert("当前项目的 anims 目录中没有找到 fla 文件。");
         return;
     }
