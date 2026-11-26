@@ -15,7 +15,9 @@ function publishOne() {
 
     const config = createPublishConfig(dom);
 
-    publish(config);
+    if (!publish(config)) {
+        return;
+    }
 
     declaration(config);
 

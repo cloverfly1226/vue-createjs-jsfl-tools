@@ -54,7 +54,10 @@ function publishAll() {
         const config = createPublishConfig(dom);
 
         try {
-            publish(config);
+            if (!publish(config)) {
+                failed_fla_names.push(fla_name);
+                continue;
+            }
 
             declaration(config);
 

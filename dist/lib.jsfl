@@ -401,6 +401,14 @@ function publish(config) {
     var temp_fla_url = "".concat(publish_js_folder, "/").concat(dom_name, ".fla");
     FLfile.copy(dom.pathURI, temp_fla_url);
     var temp_fla_dom = fl.openDocument(temp_fla_url);
+    fillMissingInstanceNames(temp_fla_dom);
+    var duplicate_messages = collectDuplicateInstanceNameMessages(temp_fla_dom);
+    if (duplicate_messages.length > 0) {
+        alert("".concat(dom_name, ".fla \u5B58\u5728\u91CD\u590D\u7684\u5B9E\u4F8B\u540D\uFF0C\u5DF2\u53D6\u6D88\u53D1\u5E03\uFF1A\n\n").concat(duplicate_messages.join("\n")));
+        temp_fla_dom.close(false);
+        FLfile.remove(temp_fla_url);
+        return false;
+    }
     var xml = temp_fla_dom.exportPublishProfileString();
     fl.trace(xml);
     var h5_reg = /(<PublishProperties[^>]*name="JavaScript\/HTML".*?>)([\s\S]*?)(<\/PublishProperties>)/;
@@ -421,6 +429,165 @@ function publish(config) {
     temp_fla_dom.publish();
     temp_fla_dom.close(false);
     FLfile.remove(temp_fla_url);
+    return true;
+}
+function collectDuplicateInstanceNameMessages(dom) {
+    var messages = [];
+    var timelines = dom.timelines;
+    for (var t = 0; t < timelines.length; t++) {
+        var timeline = timelines[t];
+        appendDuplicateNameMessages(messages, "\u573A\u666F\u300C".concat(timeline.name, "\u300D"), timeline);
+    }
+    var items = dom.library.items;
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        if ((item.itemType === "movie clip" || item.itemType === "button" || item.itemType === "graphic") &&
+            item.timeline) {
+            appendDuplicateNameMessages(messages, "\u5143\u4EF6\u300C".concat(item.name, "\u300D"), item.timeline);
+        }
+    }
+    return messages;
+}
+function appendDuplicateNameMessages(messages, owner, timeline) {
+    var name_to_layers = {};
+    var layers = timeline.layers;
+    for (var i = 0; i < layers.length; i++) {
+        var layer = layers[i];
+        if (layer.layerType === "folder" || layer.layerType === "guide") {
+            continue;
+        }
+        var names_on_layer = {};
+        var frames_2 = layer.frames;
+        for (var f = 0; f < frames_2.length; f++) {
+            var frame = frames_2[f];
+            if (frame.startFrame !== f) {
+                continue;
+            }
+            var names_on_frame = {};
+            var elements = frame.elements;
+            for (var e = 0; e < elements.length; e++) {
+                var element = elements[e];
+                if (element.elementType !== "instance" || !element.name) {
+                    continue;
+                }
+                var instance_name = element.name;
+                names_on_frame[instance_name] = (names_on_frame[instance_name] || 0) + 1;
+                names_on_layer[instance_name] = true;
+            }
+            for (var instance_name in names_on_frame) {
+                if (names_on_frame[instance_name] > 1) {
+                    messages.push("".concat(owner, " \u56FE\u5C42\u300C").concat(layer.name, "\u300D\u7B2C ").concat(f + 1, " \u5E27\u4E0A\u6709\u591A\u4E2A\u540D\u4E3A\u300C").concat(instance_name, "\u300D\u7684\u5B9E\u4F8B"));
+                }
+            }
+        }
+        for (var instance_name in names_on_layer) {
+            if (!name_to_layers[instance_name]) {
+                name_to_layers[instance_name] = [];
+            }
+            name_to_layers[instance_name].push(layer.name);
+        }
+    }
+    for (var instance_name in name_to_layers) {
+        var layer_names = name_to_layers[instance_name];
+        if (layer_names.length > 1) {
+            messages.push("".concat(owner, " \u7684\u5B9E\u4F8B\u540D\u300C").concat(instance_name, "\u300D\u51FA\u73B0\u5728\u56FE\u5C42\uFF1A").concat(layer_names.join("、")));
+        }
+    }
+}
+function fillMissingInstanceNames(dom) {
+    var timelines = dom.timelines;
+    for (var t = 0; t < timelines.length; t++) {
+        fillTimelineInstanceNames(timelines[t]);
+    }
+    var items = dom.library.items;
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        if ((item.itemType === "movie clip" || item.itemType === "button" || item.itemType === "graphic") &&
+            item.timeline) {
+            fillTimelineInstanceNames(item.timeline);
+        }
+    }
+}
+function fillTimelineInstanceNames(timeline) {
+    var layers = timeline.layers;
+    for (var i = 0; i < layers.length; i++) {
+        var layer = layers[i];
+        if (layer.layerType === "folder" || layer.layerType === "guide") {
+            continue;
+        }
+        fillLayerInstanceNames(timeline, i);
+    }
+}
+function fillLayerInstanceNames(timeline, layer_index) {
+    var layer = timeline.layers[layer_index];
+    var frame_indexes = [];
+    var frames = layer.frames;
+    for (var f = 0; f < frames.length; f++) {
+        var frame = frames[f];
+        if (frame.startFrame !== f) {
+            continue;
+        }
+        var clip = getSingleSymbolInstance(frame);
+        if (clip === undefined) {
+            return;
+        }
+        if (clip) {
+            frame_indexes.push(f);
+        }
+    }
+    if (frame_indexes.length < 2) {
+        return;
+    }
+    var first_clip = getSingleSymbolInstance(layer.frames[frame_indexes[0]]);
+    var library_name = first_clip && first_clip.libraryItem && first_clip.libraryItem.name;
+    if (!library_name) {
+        return;
+    }
+    var instance_name = "";
+    for (var i = 0; i < frame_indexes.length; i++) {
+        var clip = getSingleSymbolInstance(layer.frames[frame_indexes[i]]);
+        if (!clip || !clip.libraryItem || clip.libraryItem.name !== library_name) {
+            return;
+        }
+        if (clip.name) {
+            if (instance_name && instance_name !== clip.name) {
+                return;
+            }
+            instance_name = clip.name;
+        }
+    }
+    if (!instance_name) {
+        return;
+    }
+    timeline.setSelectedLayers(layer_index, true);
+    for (var i = 0; i < frame_indexes.length; i++) {
+        var frame_index = frame_indexes[i];
+        timeline.currentFrame = frame_index;
+        var clip = getSingleSymbolInstance(timeline.layers[layer_index].frames[frame_index]);
+        if (clip && !clip.name) {
+            clip.name = instance_name;
+        }
+    }
+}
+function getSingleSymbolInstance(frame) {
+    var found = null;
+    var elements = frame.elements;
+    for (var e = 0; e < elements.length; e++) {
+        var element = elements[e];
+        if (element.elementType !== "instance") {
+            continue;
+        }
+        var item = element.libraryItem;
+        if (!item ||
+            (item.itemType !== "movie clip" && item.itemType !== "button" && item.itemType !== "graphic")) {
+            continue;
+        }
+        if (found) {
+            return undefined;
+        }
+        found = element;
+    }
+    return found;
 }
 function publishAll() {
     if (fl.documents && fl.documents.length > 0) {
@@ -440,8 +607,17 @@ function publishAll() {
         alert("未找到当前项目的 anims 目录。");
         return;
     }
-    var fla_names = FLfile.listFolder("".concat(anims_folder, "/*.fla"), "files");
-    if (!fla_names || fla_names.length === 0) {
+    var listed_fla_names = FLfile.listFolder("".concat(anims_folder, "/*.fla"), "files");
+    var fla_names = [];
+    if (listed_fla_names) {
+        for (var i = 0; i < listed_fla_names.length; i++) {
+            if (listed_fla_names[i].toLowerCase() === "lib.fla") {
+                continue;
+            }
+            fla_names.push(listed_fla_names[i]);
+        }
+    }
+    if (fla_names.length === 0) {
         alert("当前项目的 anims 目录中没有找到 fla 文件。");
         return;
     }
@@ -453,7 +629,10 @@ function publishAll() {
         var dom = fl.openDocument(fla_url);
         var config = createPublishConfig(dom);
         try {
-            publish(config);
+            if (!publish(config)) {
+                failed_fla_names.push(fla_name);
+                continue;
+            }
             declaration(config);
             parseImages(config);
         }
@@ -480,7 +659,9 @@ function publishOne() {
     }
     dom.save();
     var config = createPublishConfig(dom);
-    publish(config);
+    if (!publish(config)) {
+        return;
+    }
     declaration(config);
     parseImages(config);
     parseAllImages();

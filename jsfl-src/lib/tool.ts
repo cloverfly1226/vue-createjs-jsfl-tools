@@ -23,6 +23,7 @@ type PublishConfig = {
   publish_image_url: string;
 };
 
+
 function createPublishConfig(dom: FlashDocument): PublishConfig {
   const dom_name: string = dom.name.replace(/\.fla$/i, "");
 
